@@ -13,6 +13,8 @@
 ├── lat_tcp             测试tcp的latency
 ├── lib                 以上bandwidth和latency测试用到的公共函数，编译成so
 └── README
+└── scripts             循环执行测试程序，获得bandwidth和latency与数据量以及
+                        concurrents的关系.
 
 2. How to run
 -------------
