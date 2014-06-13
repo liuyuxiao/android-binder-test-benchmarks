@@ -1,0 +1,11 @@
+probe module("binder_old").function("binder_ioctl").call, module("binder_old").function("binder_ioctl").return{
+  printf("%d\n",gettimeofday_ns())
+  print_backtrace()
+}
+probe process("binder_tester").function("*"){
+  printf("%s\n",probefunc())
+}
+probe kernel.function("sys_open").call{
+
+}
+

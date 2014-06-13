@@ -1,0 +1,10 @@
+%{
+    #include <linux/binder.h>
+%}
+
+probe module("binder_old").statement("*@/home/vonnyfly/kuaipan/code/linux-stable/android-binder-ipc/module-centos/binder.c:2494"){
+    printf("----------------------------------------------------------------------------\n")
+	printf("proc->requested_threads=%d\n proc->ready_threads=%d\n proc->requested_threads_started=%d\n proc->max_threads=%d\n looper=0x%x\n",
+    $proc->requested_threads,$proc->ready_threads,$proc->requested_threads_started,$proc->max_threads,$thread->looper)
+    printf("----------------------------------------------------------------------------\n\n\n")
+}

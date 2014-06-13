@@ -12,8 +12,12 @@
 ├── lat_pipe            测试pipe的latency
 ├── lat_tcp             测试tcp的latency
 ├── lib                 以上bandwidth和latency测试用到的公共函数，编译成so
+└── staps               systemtap脚本
+└── module-centos       binder新旧驱动，在centos6.5上作为模块编译
+└── tools               get-diff.sh用来对比内核版本
+└── docs                相关文档
 └── README
-└── scripts             循环执行测试程序，获得bandwidth和latency与数据量以及
+└── run_scripts         循环执行测试程序，获得bandwidth和latency与数据量以及
                         concurrents的关系.
 
 2. How to run
@@ -32,6 +36,4 @@ e.g.: ./bw_binder --help
 [-m]: send msg size each rpc
 [-M]: send msg size each iteration
 [-n]: iteration num.
-
-
 

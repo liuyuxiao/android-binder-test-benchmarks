@@ -1,0 +1,156 @@
+%{
+	#include <linux/binder.h>
+	#define NAME(n) case n:  snprintf(STAP_RETVALUE,MAXSTRINGLEN,"%s",#n);return
+%}
+
+function getIoctlCmdName:string(cmd:long) %{
+	switch(STAP_ARG_cmd) {
+        NAME(BINDER_WRITE_READ);
+        NAME(BINDER_SET_IDLE_TIMEOUT);
+        NAME(BINDER_SET_MAX_THREADS);
+        NAME(BINDER_SET_IDLE_PRIORITY);
+        NAME(BINDER_SET_CONTEXT_MGR);
+        NAME(BINDER_THREAD_EXIT);
+        NAME(BINDER_VERSION);
+    default: snprintf(STAP_RETVALUE,MAXSTRINGLEN,"%s","???");return;
+    }
+%}
+
+function getWriteCmdName:string(buffer:long,consumed:long) %{
+
+	uint32_t cmd;
+	void __user *ptr = (void*)(intptr_t)(STAP_ARG_buffer + *((long*)(intptr_t)STAP_ARG_consumed));
+	get_user(cmd, (uint32_t __user *)ptr);
+
+	switch(cmd) {
+        NAME(BC_TRANSACTION);
+        NAME(BC_REPLY);
+        NAME(BC_ACQUIRE_RESULT);
+        NAME(BC_FREE_BUFFER);
+
+        NAME(BC_INCREFS);
+        NAME(BC_ACQUIRE);
+        NAME(BC_RELEASE);
+        NAME(BC_DECREFS);
+
+        NAME(BC_INCREFS_DONE);
+        NAME(BC_ACQUIRE_DONE);
+
+        NAME(BC_ATTEMPT_ACQUIRE);
+        NAME(BC_REGISTER_LOOPER);
+
+        NAME(BC_ENTER_LOOPER);
+        NAME(BC_EXIT_LOOPER);
+
+        NAME(BC_REQUEST_DEATH_NOTIFICATION);
+        NAME(BC_CLEAR_DEATH_NOTIFICATION);
+        NAME(BC_DEAD_BINDER_DONE);
+
+    default: snprintf(STAP_RETVALUE,MAXSTRINGLEN,"%s","???");return;
+    }
+%}
+
+function getReadCmdName2:string(cmd:long) %{
+    switch(STAP_ARG_cmd) {
+        NAME(BR_ERROR);
+        NAME(BR_OK);
+        NAME(BR_TRANSACTION);
+        NAME(BR_REPLY);
+        NAME(BR_ACQUIRE_RESULT);
+        NAME(BR_DEAD_REPLY);
+        NAME(BR_TRANSACTION_COMPLETE);
+
+        NAME(BR_INCREFS);
+        NAME(BR_ACQUIRE);
+        NAME(BR_RELEASE);
+        NAME(BR_DECREFS);
+
+        NAME(BR_ATTEMPT_ACQUIRE);
+        NAME(BR_SPAWN_LOOPER);
+        NAME(BR_FINISHED);
+        NAME(BR_DEAD_BINDER);
+        NAME(BR_CLEAR_DEATH_NOTIFICATION_DONE);
+        NAME(BR_FAILED_REPLY);
+
+    default: snprintf(STAP_RETVALUE,MAXSTRINGLEN,"%s","???");return;
+    }
+%}
+
+function getReadCmdName:string(buffer:long,consumed:long) %{
+
+    uint32_t cmd;
+    void __user *ptr = (void*)(intptr_t)(STAP_ARG_buffer + *((long*)(intptr_t)STAP_ARG_consumed));
+    get_user(cmd, (uint32_t __user *)ptr);
+
+	switch(cmd) {
+        NAME(BR_ERROR);
+        NAME(BR_OK);
+        NAME(BR_TRANSACTION);
+        NAME(BR_REPLY);
+        NAME(BR_ACQUIRE_RESULT);
+        NAME(BR_DEAD_REPLY);
+        NAME(BR_TRANSACTION_COMPLETE);
+
+        NAME(BR_INCREFS);
+        NAME(BR_ACQUIRE);
+        NAME(BR_RELEASE);
+        NAME(BR_DECREFS);
+
+        NAME(BR_ATTEMPT_ACQUIRE);
+        NAME(BR_SPAWN_LOOPER);
+        NAME(BR_FINISHED);
+        NAME(BR_DEAD_BINDER);
+        NAME(BR_CLEAR_DEATH_NOTIFICATION_DONE);
+        NAME(BR_FAILED_REPLY);
+
+    default: snprintf(STAP_RETVALUE,MAXSTRINGLEN,"%s","???");return;
+    }
+%}
+
+#
+#
+# ioctl
+probe module("binder_old").function("binder_ioctl").call{
+	printf("%s(%d): ->%s\t%s\n",execname(),pid(),ppfunc(),getIoctlCmdName($cmd))
+}
+
+probe module("binder_old").function("binder_ioctl").return{
+    printf("%s(%d): <-%s\n",execname(),pid(),ppfunc())
+}
+
+
+#
+#
+# Write
+probe module("binder_old").function("binder_thread_write").call{
+	printf("%s(%d): ->%s\t%s\n",execname(),pid(),ppfunc(),getWriteCmdName($buffer,$consumed))
+}
+probe probe module("binder_old").function("binder_ioctl").return,
+    module("binder_old").function("binder_thread_write").return,
+    module("binder_old").function("binder_stat_br").return,
+{
+    printf("%s%s%s\n",thread_indent(-1),"<-",ppfunc())
+}
+
+#
+# binder_thread_read
+# Read
+#probe module("binder_old").function("binder_stat_br"){
+#    printf("xxxxx\n")
+#}
+probe module("binder_old").function("binder_stat_br").call{
+    printf("%s(%d): ->%s\t%s\n",execname(),pid(),ppfunc(),getReadCmdName2($cmd))
+    #printf("[%s] %s(%d):\t%s\n",ppfunc(),execname(),pid(),getReadCmdName($buffer,$consumed))
+    #printf("enter [%s] %s(%d)\n",ppfunc(),execname(),pid())
+}
+
+probe module("binder_old").function("binder_stat_br").return{
+    printf("%s(%d): <-%s\n",execname(),pid(),ppfunc())
+}
+
+probe module("binder_old").function("binder_mmap"){
+
+  #printf("tgid=,pid=%d\n",@cast($filp->private_data,"binder_proc")->pid)
+}
+
+

@@ -1,0 +1,149 @@
+struct binder_transaction {
+	int debug_id;
+	struct binder_work work;
+	struct binder_thread *from;
+	struct binder_transaction *from_parent;
+	struct binder_proc *to_proc;
+	struct binder_thread *to_thread;
+	struct binder_transaction *to_parent;
+	unsigned need_reply:1;
+	/* unsigned is_dead:1; */	/* not used at the moment */
+	struct binder_buffer *buffer;
+	unsigned int	code;
+	unsigned int	flags;
+	long	priority;
+	long	saved_priority;
+	uid_t	sender_euid;
+};
+
+这个数据结构是消息在进程（线程）的内核态间传递的载体，整个传递过程在内核态。
+
+
+struct binder_buffer {
+	struct list_head entry; /* free and allocated entries by addesss */
+	struct rb_node rb_node; /* free entry by size or allocated entry */
+				/* by address */
+	unsigned free:1;
+	unsigned allow_user_free:1;
+	unsigned async_transaction:1;
+	unsigned debug_id:29;
+	struct binder_transaction *transaction;
+	struct binder_node *target_node;
+	size_t data_size;
+	size_t offsets_size;
+	uint8_t data[0];
+};
+这个是一次通信时在service端分配的一段和用户空间映射的RAM，通信时数据就是写在这里。
+
+
+
+struct binder_write_read {
+	signed long	write_size;	/* bytes to write */
+	signed long	write_consumed;	/* bytes consumed by driver */
+	unsigned long	write_buffer;
+	signed long	read_size;	/* bytes to read */
+	signed long	read_consumed;	/* bytes consumed by driver */
+	unsigned long	read_buffer;
+};
+
+这个数据结构是binder用户空间和内核空间交换信息的媒介。
+
+struct binder_node {
+	int debug_id;
+	struct binder_work work;
+	union {
+		struct rb_node rb_node;
+		struct hlist_node dead_node;
+	};
+	struct binder_proc *proc;
+	struct hlist_head refs;
+	int internal_strong_refs;
+	int local_weak_refs;
+	int local_strong_refs;
+	void __user *ptr;
+	void __user *cookie;
+	unsigned has_strong_ref:1;
+	unsigned pending_strong_ref:1;
+	unsigned has_weak_ref:1;
+	unsigned pending_weak_ref:1;
+	unsigned has_async_transaction:1;
+	unsigned accept_fds:1;
+	unsigned min_priority:8;
+	struct list_head async_todo;
+};
+这个代表一个service节点。
+
+
+struct binder_ref {
+	/* Lookups needed: */
+	/*   node + proc => ref (transaction) */
+	/*   desc + proc => ref (transaction, inc/dec ref) */
+	/*   node => refs + procs (proc exit) */
+	int debug_id;
+	struct rb_node rb_node_desc;
+	struct rb_node rb_node_node;
+	struct hlist_node node_entry;
+	struct binder_proc *proc;
+	struct binder_node *node;
+	uint32_t desc;
+	int strong;
+	int weak;
+	struct binder_ref_death *death;
+};
+这个代表service的引用，也就是一个client。
+
+
+
+struct binder_proc {
+	struct hlist_node proc_node;
+	struct rb_root threads;
+	struct rb_root nodes;
+	struct rb_root refs_by_desc;
+	struct rb_root refs_by_node;
+	int pid;
+	struct vm_area_struct *vma;
+	struct task_struct *tsk;
+	struct files_struct *files;
+	struct hlist_node deferred_work_node;
+	int deferred_work;
+	void *buffer;
+	ptrdiff_t user_buffer_offset;
+	struct list_head buffers;
+	struct rb_root free_buffers;
+	struct rb_root allocated_buffers;
+	size_t free_async_space;
+	struct page **pages;
+	size_t buffer_size;
+	uint32_t buffer_free;
+	struct list_head todo;
+	wait_queue_head_t wait;
+	struct binder_stats stats;
+	struct list_head delivered_death;
+	int max_threads;
+	int requested_threads;
+	int requested_threads_started;
+	int ready_threads;
+	long default_priority;
+	struct dentry *debugfs_entry;
+};
+这个代表一个service进程，可以包含多个service node，binder buffer就是由他来管理。
+
+
+struct binder_thread {
+	struct binder_proc *proc;
+	struct rb_node rb_node;
+	int pid;
+	int looper;
+	struct binder_transaction *transaction_stack;
+	struct list_head todo;
+	uint32_t return_error; /* Write failed, return error code in read buf */
+	uint32_t return_error2; /* Write failed, return error code in read */
+		/* buffer. Used when sending a reply to a dead process that */
+		/* we are also waiting on */
+	wait_queue_head_t wait;
+	struct binder_stats stats;
+};
+这个代表一个service线程，跟用户态线程对应的一个数据结构。
+
+
+

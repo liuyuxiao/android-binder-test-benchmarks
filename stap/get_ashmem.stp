@@ -1,0 +1,26 @@
+#! /usr/bin/env stap
+
+function trace(entry_p, extra) {
+  %( $# > 1 %? if (tid() in trace) %)
+  printf("%s%s%s %s\n",
+         thread_indent (entry_p),
+         (entry_p>0?"->":"<-"),
+         ppfunc(),
+         extra)
+}
+
+
+%( $# > 1 %?
+global trace
+probe $2.call {
+  trace[tid()] = 1
+}
+probe $2.return {
+  delete trace[tid()]
+}
+%)
+
+probe kernel.function("*@mm/*.c").call,
+	module("ashmem_my").function("ashmem_mmap").call
+{ trace(1, $$parms) }
+probe kernel.function("*@mm/*.c").return,module("ashmem_my").function("ashmem_mmap").return { trace(-1, $$return) }
